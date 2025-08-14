@@ -1,0 +1,28 @@
+{
+  "name": "vpnbot",
+  "version": "1.0.0",
+  "description": "Simple Telegram bot (grammY) to manage 3x-ui clients",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "telegram",
+    "grammy",
+    "3x-ui",
+    "x-ui",
+    "vpn"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "grammy": "^1.33.0"
+  }
+}
+
+

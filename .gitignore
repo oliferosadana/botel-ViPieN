@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+.env.vault
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & Coverage
+*.log
+logs/
+coverage/
+
+# Runtime data (generated at runtime by the bot)
+data/*.json
+data/*.jsonl
+
+
