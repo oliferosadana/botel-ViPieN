@@ -174,6 +174,10 @@ function logEvent(event) {
       time: Date.now(),
       ...event
     };
+    // Memastikan semua aktivitas client_created menyimpan creatorId
+    if (event.type === 'client_created' && event.userId) {
+      entry.creatorId = event.userId;
+    }
     fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');
   } catch {}
 }
@@ -524,7 +528,10 @@ async function sendClientsList(ctx, { isAdminView }) {
       if (clients.length === 0) continue;
       for (const c of clients) {
         if (!isAdminView) {
+          // Filter berdasarkan domain dan pembuat client
           if (!String(c.email || '').endsWith(`@${STATIC_EMAIL_DOMAIN}`)) continue;
+          // Hanya tampilkan client yang dibuat oleh user ini
+          if (c.creatorId !== undefined && c.creatorId !== ctx.from?.id) continue;
         }
         const proto = inbound.protocol;
         const conf = buildConfigLink(proto, inbound, c);
@@ -696,7 +703,7 @@ function buildMainKeyboard(isAdminUser) {
   return kb.resized();
 }
 
-async function tryAddClientViaUpdate(xui, inboundId, client) {
+async function tryAddClientViaUpdate(xui, inboundId, client, ctx) {
   const inboundResp = await xui.getInbound(inboundId);
   const inbound = inboundResp?.obj || inboundResp?.inbound || inboundResp;
   if (!inbound) {
@@ -704,6 +711,10 @@ async function tryAddClientViaUpdate(xui, inboundId, client) {
   }
   const settingsObj = parseJsonIfString(inbound.settings, {});
   const clients = Array.isArray(settingsObj.clients) ? [...settingsObj.clients] : [];
+  // Pastikan creatorId tersimpan saat menggunakan fallback add client
+if (!client.creatorId && ctx?.from?.id) {
+    client.creatorId = ctx.from.id;
+  }
   clients.push(client);
   settingsObj.clients = clients;
   const streamSettingsStr = typeof inbound.streamSettings === 'string' ? inbound.streamSettings : JSON.stringify(inbound.streamSettings || {});
@@ -1548,9 +1559,9 @@ bot.on('message:text', async (ctx) => {
     let client;
     if (protocol === 'trojan') {
       const password = uuid.replace(/-/g, '');
-      client = { password, email, enable: true };
+      client = { password, email, enable: true, creatorId: ctx.from?.id || 0 };
     } else {
-      client = { id: uuid, email, enable: true };
+      client = { id: uuid, email, enable: true, creatorId: ctx.from?.id || 0 };
     }
 
     // Handle masa aktif (expiryTime per-client) bila panel mendukung pada settings.clients[*].expiryTime
@@ -1576,7 +1587,7 @@ bot.on('message:text', async (ctx) => {
     let addResp = await xui.addClient(pending.inboundId, client);
     if (!addResp || addResp?.success === false) {
       // Fallback terakhir: update inbound dengan menambahkan client ke settings
-      await tryAddClientViaUpdate(xui, pending.inboundId, client);
+      await tryAddClientViaUpdate(xui, pending.inboundId, client, ctx);
       addResp = { success: true };
     }
 
